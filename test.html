@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
     <style type="text/css">
     div.main {
         width: 400px;
@@ -9,35 +10,37 @@
         border: solid 1px black;
         display: inline-block;
     }
-
+    
     div.main span {
-        width:40px;
+        width: 40px;
         background-color: red;
         border-radius: 5px;
         color: white;
         cursor: pointer;
     }
     </style>
-    <script type = "text/javascript">
+    <script type="text/javascript">
     var preText = "";
     var curText = "";
 
     var myTextArea;
     var originTextArea;
+
     function appendText(str) {
-  //      console.log(str.replace(preText, ''));
-  console.log(str.replace(preText, ''));
-  myTextArea.appendChild(document.createTextNode(str.replace(preText, '')));
-  preText = str;
-}
-</script>
+        //      console.log(str.replace(preText, ''));
+        console.log(str.replace(preText, ''));
+        myTextArea.appendChild(document.createTextNode(str.replace(preText, '')));
+        preText = str;
+    }
+    </script>
 </head>
+
 <body>
-    <div class = "code">
-        <div id = "ma" style="position: absolute; top: 0px; z-index: 2;"></div>
+    <div class="code">
+        <div id="ma" style="position: absolute; top: 0px; z-index: 2;"></div>
         <div style="overflow: hidden; position: relative; width: 3px; height: 0px;">
-            <textarea id = "ta" style="position: absolute; padding: 0px; width: 1000px; height: 1em; outline: none; tabindex: -1;"></textarea>
-        </div>    
+            <textarea id="ta" style="position: absolute; padding: 0px; width: 1000px; height: 1em; outline: none; tabindex: -1;"></textarea>
+        </div>
     </div>
     <script type="text/javascript">
     originTextArea = document.getElementById("ta");
@@ -48,13 +51,14 @@
         appendText(originTextArea.value);
     }
     originTextArea.onkeydown = function() {
-       // originTextArea.style.visibility  = "hidden";
-       console.log(originTextArea.value);
-    //   appendText(originTextArea.value);
-       originTextArea.focus();
-//        originTextArea.style.visibility  = "visible";
+        // originTextArea.style.visibility  = "hidden";
+        console.log(originTextArea.value);
+        //   appendText(originTextArea.value);
+        originTextArea.focus();
+        //        originTextArea.style.visibility  = "visible";
 
-}
-</script>
+    }
+    </script>
 </body>
+
 </html>
