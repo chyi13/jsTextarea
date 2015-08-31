@@ -34,6 +34,7 @@ var prevalue = "";
 
 //
 var linenumber = -1;
+var lineheight = -1;
 
 // 
 var pollingFast = false;
@@ -92,7 +93,6 @@ jsTextarea.prototype = {
 		ta.style.position = "absolute";
 		ta.style.top = "0px";
 		ta.style.zIndex = "2";
-
 		p.insertBefore(ta, t.parentNode);
 
 
@@ -115,7 +115,6 @@ jsTextarea.prototype = {
 	poll: function() {
 		var text = t.value;
 		if (text === prevalue) {
-			console.log("same");
 			pollingFast = false;
 		} 
 		this.applyTextInput(text);
@@ -124,7 +123,8 @@ jsTextarea.prototype = {
 		this.setSlowPoll();
 
 		prevalue = text;
-
+		
+		console.log(this.getLineNumber());
 	},
 	
 	slowPoll: function() {
@@ -152,9 +152,6 @@ jsTextarea.prototype = {
 			for (index = 0; index < newlines.length; index++) {
 				// this.createTextNode(newlines[index]);
 				ta.appendChild(this.createNewLineNode(newlines[index]));
-				if ((index+1) < newlines.length) {
-					ta.appendChild(this.createNewLineTag());
-				}
 			}
 		}
 
@@ -173,7 +170,7 @@ jsTextarea.prototype = {
 		lineNode.style.margin = "0";
 		lineNode.style.zIndex = "2";
 		lineNode.style.position = "relative";
-		
+		lineNode.style.whiteSpace = "pre";
 		// highlight keywords
 		var i = 0;
 		var keyword_pos = [];
@@ -231,6 +228,10 @@ jsTextarea.prototype = {
 	},
 	
 	getLineNumber: function() {
-		
+		if (lineheight === -1) {
+			lineheight = ta.offsetHeight;
+		}
+		var currentHeight = ta.offsetHeight;
+		return currentHeight/ lineheight;
 	}
 };
