@@ -3,12 +3,34 @@
 
 <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-    <script src = "./jsTextarea/jsTextarea.js"></script>
+    <script src="./jsTextarea/jsTextarea.js"></script>
+    <style>
+        div.code {
+            font-size: 17px;
+        }
+        
+        pre {
+            -webkit-border-radius: 0;
+            border-radius: 0;
+            border-width: 0;
+            background: transparent;
+            font-family: inherit;
+            font-size: inherit;
+            margin: 0;
+            white-space: pre;
+            word-wrap: normal;
+            line-height: inherit;
+            color: inherit;
+            z-index: 2;
+            position: relative;
+            overflow: visible;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
 </head>
 
 <body>
     <div class="code">
-        <div id="ma" style="position: absolute; top: 0px; z-index: 2;"></div>
         <div style="overflow: hidden; position: relative; width: 3px; height: 0px;">
             <textarea id="ta" style="position: absolute; padding: 0px; width: 1000px; height: 1em; outline: none; tabindex: -1;"></textarea>
         </div>

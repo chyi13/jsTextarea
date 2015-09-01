@@ -35,34 +35,44 @@ var prevalue = "";
 //
 var linenumber = -1;
 var lineheight = -1;
+var linepadding;
 
 // 
 var pollingFast = false;
 var fastPollVal, slowPollVal;
 
 //
+var caretPosX, caretPosY;
+var caretCoordX, caretCoordY;
+//
 var cursor;
 // create cursor
 function Cursor(parent) {
 	this.parent = parent;
 	this.c = document.createElement("div");
-	this.c.style.position = "relative";
+	this.c.style.position = "absolute";
 	this.c.style.zIndex = "3";
 	this.c.style.borderLeft = "solid 1px black";
-	this.c.style.height = "19px";
+	this.c.style.margin = "0";
+	this.c.style.height = window.getComputedStyle(parent).fontSize;
 	parent.appendChild(this.c);
 };
 Cursor.prototype = {
 	init: function () {
-		setInterval(this.update.bind(this), 500);
+		setInterval(this.blink.bind(this), 500);
 	},
-	update: function () {
+	blink: function () {
 		if (this.c.style.visibility === "hidden") {
 			this.c.style.visibility = "";
 		}
 		else {
 			this.c.style.visibility = "hidden";
 		}
+	},
+
+	updatePos: function (x, y) {
+		this.c.style.left = x + "px";
+		this.c.style.top = y + "px";
 	}
 };
 
@@ -87,7 +97,7 @@ function jsTextarea(parent, textarea) {
 }
 
 jsTextarea.prototype = {
-	init: function() {
+	init: function () {
 		ta = document.createElement("pre");
 		// <div id="ma" style="position: absolute; top: 0px; z-index: 2;"></div>
 		ta.style.position = "absolute";
@@ -98,118 +108,167 @@ jsTextarea.prototype = {
 
 		t.addEventListener("keydown", this.update.bind(this));
 		t.focus();
-		
+
 		cursor = new Cursor(p);
 		cursor.init();
 	},
 
-	update: function() {
+	update: function () {
 		//
 		pollingFast = true;
-		
+
 		clearInterval(fastPollVal);
 		// fast poll
 		fastPollVal = setInterval(this.poll.bind(this), 20);
 	},
-	
-	poll: function() {
+
+	poll: function () {
 		var text = t.value;
 		if (text === prevalue) {
 			pollingFast = false;
-		} 
+		}
 		this.applyTextInput(text);
 		
 		// set timeout for slow poll
 		this.setSlowPoll();
 
 		prevalue = text;
-		
-		console.log(this.getLineNumber());
+		// update cursor
+		cursor.updatePos(caretCoordX, caretPosY * lineheight);
 	},
-	
-	slowPoll: function() {
-			
+
+	slowPoll: function () {
+
 	},
-	
-	setSlowPoll: function() {
+
+	setSlowPoll: function () {
 		// check polling fast 
 		if (!pollingFast) {
-			slowPollVal = setInterval(this.slowPoll.bind(this), 1000);	
+			slowPollVal = setInterval(this.slowPoll.bind(this), 1000);
 			clearInterval(fastPollVal);
 		} else {
 			clearInterval(slowPollVal);
 		}
 	},
-	
-	applyTextInput: function(inserted) {
+
+	applyTextInput: function (inserted) {
 		var newlines = this.splitLines(inserted);
 		
 		// delete 
 		this.emptyTextarea();
-		
+
 		var index = 0;
+		
+		// caret 
+		var caretPos = t.selectionStart;
+		var chCount = 0;
+
+		caretPosX = -1, caretPosY = -1;
 		if (inserted != "") {
 			for (index = 0; index < newlines.length; index++) {
-				// this.createTextNode(newlines[index]);
-				ta.appendChild(this.createNewLineNode(newlines[index]));
+				if (countChar(index, newlines[index])) {
+					this.createMirrorNodeCaret(newlines[index]);
+				}
+				var tempNewLineNode = this.createNewLineNode(newlines[index]);
+				ta.appendChild(tempNewLineNode);
+
+				setLineHeight();
 			}
 		}
 
+		function countChar(tempIndex, tempStr) {
+			if (caretPosX !== -1) { return false; }
+			if (caretPos > chCount + tempStr.length + 1) {
+				chCount += (tempStr.length + 1);
+				return false;
+			}
+			caretPosX = caretPos - chCount;
+			caretPosY = tempIndex;
+			return true;
+		}
+
+		function setLineHeight() {
+			if (lineheight === -1) {
+				lineheight = ta.offsetHeight;
+				linepadding = ta.offsetLeft;
+			}
+		}
 	},
-		
-	displayCursor: function() {
-		
+	displayCursor: function () {
+
 	},
-	
-	createNewLineTag: function() {
+
+	createNewLineTag: function () {
 		return document.createElement("br");
 	},
-	
-	createNewLineNode: function(str) {
+
+	createMirrorNodeCaret: function (str) {
+		var lineNode = document.createElement("div");
+		lineNode.style.margin = "0";
+		lineNode.style.zIndex = "4";
+		lineNode.style.position = "absolute";
+		lineNode.style.whiteSpace = "pre";
+		lineNode.style.visibility = "hidden";
+		
+		var beforeCaret = document.createElement("span");
+		var afterCaret = document.createElement("span");
+		beforeCaret.textContent = str.substring(0, caretPosX);
+		afterCaret.textContent = str.substr(caretPosX);
+
+		lineNode.appendChild(beforeCaret);
+		lineNode.appendChild(afterCaret);
+
+		ta.appendChild(lineNode);
+
+		caretCoordX = afterCaret.offsetLeft + linepadding;
+		caretCoordY = afterCaret.offsetTop;
+	},
+
+	createNewLineNode: function (str) {
 		var lineNode = document.createElement("pre");
 		lineNode.style.margin = "0";
 		lineNode.style.zIndex = "2";
 		lineNode.style.position = "relative";
-		lineNode.style.whiteSpace = "pre";
+		lineNode.style.whiteSpace = "pre-wrap";
 		// highlight keywords
 		var i = 0;
 		var keyword_pos = [];
 		var startPos;
-		for (i = 0; i< KEY_WORDS.length; i++) {
+		for (i = 0; i < KEY_WORDS.length; i++) {
 			while ((startPos = str.indexOf("<" + KEY_WORDS[i] + ">", startPos)) !== -1) {
-				keyword_pos.push({start: startPos, end: startPos + KEY_WORDS[i].length  + 2});
+				keyword_pos.push({ start: startPos, end: startPos + KEY_WORDS[i].length + 2 });
 				startPos += KEY_WORDS[i].length + 2;
 			}
 		}
 		
 		// sort
-		keyword_pos.sort(function(a, b) {
+		keyword_pos.sort(function (a, b) {
 			return a.start - b.start;
 		});
 		
 		// add
 		startPos = 0;
-		for (i = 0; i< keyword_pos.length; i++) {
+		for (i = 0; i < keyword_pos.length; i++) {
 			var substr = str.substring(startPos, keyword_pos[i].start);
 			lineNode.appendChild(this.createTextNode(substr));
 			substr = str.substring(keyword_pos[i].start, keyword_pos[i].end);
 			lineNode.appendChild(this.createHighlightNode(substr));
-			
+
 			startPos = keyword_pos[i].end;
 		}
-		
+
 		if (startPos !== str.length) {
 			lineNode.appendChild(this.createTextNode(str.substr(startPos)));
 		}
-		
-		return lineNode;	
+
+		return lineNode;
 	},
-	
-	createTextNode: function(str) {
+
+	createTextNode: function (str) {
 		return document.createTextNode(str);
 	},
-	
-	createHighlightNode: function(str) {
+
+	createHighlightNode: function (str) {
 		var hlNode = document.createElement("span");
 		hlNode.style.zIndex = "2";
 		hlNode.style.position = "relative";
@@ -219,19 +278,19 @@ jsTextarea.prototype = {
 		return hlNode;
 	},
 
-	splitLines: function(str) {
+	splitLines: function (str) {
 		return str.split("\n");
 	},
-	
-	emptyTextarea: function() {
-		ta.innerHTML = '';	
+
+	emptyTextarea: function () {
+		ta.innerHTML = '';
 	},
-	
-	getLineNumber: function() {
+
+	getLineNumber: function () {
 		if (lineheight === -1) {
 			lineheight = ta.offsetHeight;
 		}
 		var currentHeight = ta.offsetHeight;
-		return currentHeight/ lineheight;
+		return currentHeight / lineheight;
 	}
 };
