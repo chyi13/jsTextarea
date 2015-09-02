@@ -52,28 +52,38 @@ function Cursor(parent) {
 	this.parent = parent;
 	this.c = document.createElement("div");
 	this.c.style.position = "absolute";
-	this.c.style.zIndex = "3";
-	this.c.style.borderLeft = "solid 1px black";
+	this.c.style.zIndex = "4";
+	this.c.style.borderLeft = "solid 1px #f8f8f8";
 	this.c.style.margin = "0";
 	this.c.style.top = PADDING.top;
 	this.c.style.left = PADDING.left;
-//	this.c.top = window.getComputedStyle(parent).top;
 	this.c.style.height = window.getComputedStyle(parent).fontSize;
 	parent.appendChild(this.c);
+
+	this.blinkRef = undefined;
 	
-	console.log(window.getComputedStyle(this.c).top);
 };
 Cursor.prototype = {
+	
 	init: function () {
-		setInterval(this.blink.bind(this), 500);
+		//this.toggleOn();
 	},
 	blink: function () {
 		if (this.c.style.visibility === "hidden") {
-			this.c.style.visibility = "";
+			this.c.style.visibility = "visible";
 		}
 		else {
 			this.c.style.visibility = "hidden";
 		}
+	},
+	
+	toggleOff: function() {
+		clearInterval(this.blinkRef);	
+		this.c.style.visibility = "hidden";
+	},
+	
+	toggleOn: function() {
+		this.blinkRef = setInterval(this.blink.bind(this), 500);	
 	},
 
 	updatePos: function (x, y) {
@@ -110,6 +120,16 @@ jsTextarea.prototype = {
 		ta.style.top = PADDING.top;
 		ta.style.left = PADDING.left;
 		ta.style.zIndex = "2";
+		ta.style.background = "#0a001f";
+		ta.style.color = "#f8f8f8";
+		ta.style.width = "100%";
+		ta.style.height = "200px";
+		ta.style.lineHeight = "17px";
+		ta.style.fontFamily = "monospace";
+		
+		// caret
+		cursor = new Cursor(p);
+		cursor.init();
 		
 		caretCoordX = 3;
 		caretCoordY = 3;
@@ -120,10 +140,12 @@ jsTextarea.prototype = {
 			t.addEventListener(event, this.update.bind(this));
 		}.bind(this));
 		
+		t.addEventListener("blur", function() {cursor.toggleOff();}.bind(this));
+		t.addEventListener("focus", function() {cursor.toggleOn();}.bind(this));
+		
 		t.focus();
-
-		cursor = new Cursor(p);
-		cursor.init();
+		
+		ta.addEventListener("click", function() { t.focus(); }.bind(this));
 	},
 
 	update: function () {
@@ -179,7 +201,6 @@ jsTextarea.prototype = {
 
 		caretPosX = -1, caretPosY = -1;
 		if (inserted !== "") {
-			console.log(newlines.length);
 			for (index = 0; index < newlines.length; index++) {
 				if (countChar(index, newlines[index])) {
 					createMirrorNodeCaret(newlines[index]);
@@ -208,7 +229,8 @@ jsTextarea.prototype = {
 
 		function setLineHeight() {
 			if (lineheight === -1) {
-				lineheight = ta.offsetHeight;
+				// get line height
+				lineheight = parseInt(ta.style.lineHeight.substr(0, ta.style.lineHeight.length-2));
 				linePaddingLeft = ta.offsetLeft;
 				linePaddingTop = ta.offsetTop;
 			}
@@ -232,6 +254,7 @@ jsTextarea.prototype = {
 			
 			ta.appendChild(lineNode);
 			caretCoordX = afterCaret.offsetLeft + linePaddingLeft;
+			
 			caretCoordY = afterCaret.offsetTop + caretPosY * lineheight + linePaddingTop;
 		}
 	},
@@ -246,10 +269,11 @@ jsTextarea.prototype = {
 	createNewLineNode: function (str) {
 		var lineNode = document.createElement("pre");
 		lineNode.style.margin = "0";
-		lineNode.style.zIndex = "2";
+		lineNode.style.zIndex = "3";
 		lineNode.style.position = "relative";
 		lineNode.style.whiteSpace = "pre";
 		
+		// if empty
 		if (str === "") {
 			lineNode.appendChild(document.createTextNode("\n"));
 			return lineNode;
@@ -294,7 +318,7 @@ jsTextarea.prototype = {
 
 	createHighlightNode: function (str) {
 		var hlNode = document.createElement("span");
-		hlNode.style.zIndex = "2";
+		hlNode.style.zIndex = "3";
 		hlNode.style.position = "relative";
 	//	hlNode.style.paddingRight = "3px";
 		hlNode.style.color = "red";
@@ -308,13 +332,5 @@ jsTextarea.prototype = {
 
 	emptyTextarea: function () {
 		ta.innerHTML = '';
-	},
-
-	getLineNumber: function () {
-		if (lineheight === -1) {
-			lineheight = ta.offsetHeight;
-		}
-		var currentHeight = ta.offsetHeight;
-		return currentHeight / lineheight;
 	}
 };
