@@ -65,7 +65,7 @@ function Cursor(parent) {
 };
 Cursor.prototype = {
 	init: function () {
-		//setInterval(this.blink.bind(this), 500);
+		setInterval(this.blink.bind(this), 500);
 	},
 	blink: function () {
 		if (this.c.style.visibility === "hidden") {
@@ -79,7 +79,6 @@ Cursor.prototype = {
 	updatePos: function (x, y) {
 		this.c.style.left = x + "px";
 		this.c.style.top = y + "px";
-		console.log(x, y);
 	}
 };
 
@@ -180,9 +179,9 @@ jsTextarea.prototype = {
 
 		caretPosX = -1, caretPosY = -1;
 		if (inserted !== "") {
+			console.log(newlines.length);
 			for (index = 0; index < newlines.length; index++) {
 				if (countChar(index, newlines[index])) {
-			//		countChar(index, newlines[index]);
 					createMirrorNodeCaret(newlines[index]);
 				}
 				var tempNewLineNode = this.createNewLineNode(newlines[index]);
@@ -249,7 +248,12 @@ jsTextarea.prototype = {
 		lineNode.style.margin = "0";
 		lineNode.style.zIndex = "2";
 		lineNode.style.position = "relative";
-		lineNode.style.whiteSpace = "pre-wrap";
+		lineNode.style.whiteSpace = "pre";
+		
+		if (str === "") {
+			lineNode.appendChild(document.createTextNode("\n"));
+			return lineNode;
+		}
 		// highlight keywords
 		var i = 0;
 		var keyword_pos = [];
@@ -276,7 +280,7 @@ jsTextarea.prototype = {
 
 			startPos = keyword_pos[i].end;
 		}
-
+		
 		if (startPos !== str.length) {
 			lineNode.appendChild(this.createTextNode(str.substr(startPos)));
 		}
