@@ -1,3 +1,4 @@
+/* global style */
 //  
 //                                  _oo8oo_
 //                                 o8888888o
@@ -27,6 +28,8 @@
 var ta;
 var p;
 var t;
+var bg;
+var gutter;
 
 var doc;
 //
@@ -51,20 +54,16 @@ var cursor;
 function Cursor(parent) {
 	this.parent = parent;
 	this.c = document.createElement("div");
-	this.c.style.position = "absolute";
-	this.c.style.zIndex = "4";
-	this.c.style.borderLeft = "solid 1px #f8f8f8";
-	this.c.style.margin = "0";
 	this.c.style.top = PADDING.top;
 	this.c.style.left = PADDING.left;
-	this.c.style.height = window.getComputedStyle(parent).fontSize;
+	this.c.className = "jstextarea-cursor";
 	parent.appendChild(this.c);
 
 	this.blinkRef = undefined;
-	
+
 };
 Cursor.prototype = {
-	
+
 	init: function () {
 		//this.toggleOn();
 	},
@@ -76,14 +75,15 @@ Cursor.prototype = {
 			this.c.style.visibility = "hidden";
 		}
 	},
-	
-	toggleOff: function() {
-		clearInterval(this.blinkRef);	
+
+	toggleOff: function () {
+		clearInterval(this.blinkRef);
 		this.c.style.visibility = "hidden";
 	},
-	
-	toggleOn: function() {
-		this.blinkRef = setInterval(this.blink.bind(this), 500);	
+
+	toggleOn: function () {
+		this.c.style.visibility = "visible";
+		this.blinkRef = setInterval(this.blink.bind(this), 530);
 	},
 
 	updatePos: function (x, y) {
@@ -104,7 +104,13 @@ var KEY_WORDS = [
 	"var", "while", "with", "yield"
 ];
 
-var PADDING = {top: "30px", left: "30px"};
+var OPERATIONS = /[+\-*&%=<>!?|~^]/;
+
+var FUNCTIONS = [
+	"log"	
+];
+
+var PADDING = { top: "10px", iTop: 10, left: "40px", iLeft: 40 };
 
 function jsTextarea(parent, textarea) {
 	// new textarea
@@ -114,38 +120,50 @@ function jsTextarea(parent, textarea) {
 
 jsTextarea.prototype = {
 	init: function () {
+		// create background
+		function createBackground(parent) {
+			var tBg = document.createElement("div");
+			tBg.className = "jstextarea-background";
+			parent.appendChild(tBg);
+			return tBg;
+		}
+		bg = createBackground(p);
+		
+		// create gutter background
+		function createGutter(parent) {
+			var tGutter = document.createElement("div");
+			tGutter.className = "jstextarea-gutter";
+			parent.appendChild(tGutter);
+			return tGutter;
+		}
+		gutter = createGutter(bg);
+		
+		// create textarea
 		ta = document.createElement("div");
-		// <div id="ma" style="position: absolute; top: 0px; z-index: 2;"></div>
-		ta.style.position = "absolute";
 		ta.style.top = PADDING.top;
 		ta.style.left = PADDING.left;
-		ta.style.zIndex = "2";
-		ta.style.background = "#0a001f";
-		ta.style.color = "#f8f8f8";
-		ta.style.width = "100%";
-		ta.style.height = "200px";
-		ta.style.lineHeight = "17px";
-		ta.style.fontFamily = "monospace";
+		ta.className = "jstextarea-textarea";
+
+		bg.appendChild(ta);
 		
-		// caret
-		cursor = new Cursor(p);
+		// create caret
+		cursor = new Cursor(bg);
 		cursor.init();
-		
 		caretCoordX = 3;
 		caretCoordY = 3;
+		p.insertBefore(bg, t.parentNode);
 		
-		p.insertBefore(ta, t.parentNode);
-		
-		["keydown", "keyup"].forEach(function(event) {
+		// add listeners
+		["keydown", "keyup"].forEach(function (event) {
 			t.addEventListener(event, this.update.bind(this));
 		}.bind(this));
-		
-		t.addEventListener("blur", function() {cursor.toggleOff();}.bind(this));
-		t.addEventListener("focus", function() {cursor.toggleOn();}.bind(this));
-		
+
+		t.addEventListener("blur", function () { cursor.toggleOff(); }.bind(this));
+		t.addEventListener("focus", function () { cursor.toggleOn(); }.bind(this));
+
 		t.focus();
-		
-		ta.addEventListener("click", function() { t.focus(); }.bind(this));
+
+		bg.addEventListener("click", function () { t.focus(); }.bind(this));
 	},
 
 	update: function () {
@@ -187,7 +205,7 @@ jsTextarea.prototype = {
 	},
 
 	applyTextInput: function (inserted) {
-		
+
 		var newlines = this.splitLines(inserted);
 		
 		// delete 
@@ -202,10 +220,18 @@ jsTextarea.prototype = {
 		caretPosX = -1, caretPosY = -1;
 		if (inserted !== "") {
 			for (index = 0; index < newlines.length; index++) {
+				// calculate caret pos
 				if (countChar(index, newlines[index])) {
 					createMirrorNodeCaret(newlines[index]);
+					ta.appendChild(createFocusedLine());
 				}
-				var tempNewLineNode = this.createNewLineNode(newlines[index]);
+				
+				// add line number
+				var tempNewLineNumberNode = this.createNewLineNumber(index);
+				ta.appendChild(tempNewLineNumberNode);
+
+				var tempNewLineNode;// = this.createNewLineNode(newlines[index]);
+				tempNewLineNode = this.createNewLineNode1(newlines[index]);
 				ta.appendChild(tempNewLineNode);
 
 				setLineHeight();
@@ -221,7 +247,7 @@ jsTextarea.prototype = {
 				chCount += (tempStr.length + 1);
 				return false;
 			}
-			 
+
 			caretPosX = caretPos - chCount;
 			caretPosY = tempIndex;
 			return true;
@@ -230,7 +256,8 @@ jsTextarea.prototype = {
 		function setLineHeight() {
 			if (lineheight === -1) {
 				// get line height
-				lineheight = parseInt(ta.style.lineHeight.substr(0, ta.style.lineHeight.length-2));
+				var hStr = window.getComputedStyle(ta).lineHeight;
+				lineheight = parseInt(hStr.substr(0, hStr.length - 2));
 				linePaddingLeft = ta.offsetLeft;
 				linePaddingTop = ta.offsetTop;
 			}
@@ -251,27 +278,22 @@ jsTextarea.prototype = {
 
 			lineNode.appendChild(beforeCaret);
 			lineNode.appendChild(afterCaret);
-			
 			ta.appendChild(lineNode);
-			caretCoordX = afterCaret.offsetLeft + linePaddingLeft;
 			
+			caretCoordX = afterCaret.offsetLeft + linePaddingLeft;
 			caretCoordY = afterCaret.offsetTop + caretPosY * lineheight + linePaddingTop;
 		}
-	},
-	displayCursor: function () {
-
-	},
-
-	createNewLineTag: function () {
-		return document.createElement("br");
+		
+		function createFocusedLine() {
+			var lineNode = document.createElement("div");
+			lineNode.className = "jstextarea-focusline";
+			return lineNode;
+		}
 	},
 
 	createNewLineNode: function (str) {
 		var lineNode = document.createElement("pre");
-		lineNode.style.margin = "0";
-		lineNode.style.zIndex = "3";
-		lineNode.style.position = "relative";
-		lineNode.style.whiteSpace = "pre";
+		lineNode.className = "jstextarea-linenode";
 		
 		// if empty
 		if (str === "") {
@@ -304,12 +326,98 @@ jsTextarea.prototype = {
 
 			startPos = keyword_pos[i].end;
 		}
-		
+
 		if (startPos !== str.length) {
 			lineNode.appendChild(this.createTextNode(str.substr(startPos)));
 		}
 
 		return lineNode;
+	},
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	createNewLineNode1: function (str) {
+		var lineNode = document.createElement("pre");
+		lineNode.className = "jstextarea-linenode";
+		
+		// if empty
+		if (str === "") {
+			lineNode.appendChild(document.createTextNode("\n"));
+			return lineNode;
+		}
+
+		var splits = str.split(/(\s)/);
+		for (var i = 0; i<splits.length; i++) {
+			if (splits[i] !== "") {
+				var tSubstr = splits[i];
+				// quotation marks " and '
+				
+		//		var start = this.createStringNode(tSubstr, lineNode);
+				
+				lineNode.appendChild(this.createKeywordNode(tSubstr));
+			}
+		}
+		return lineNode;
+	},
+		
+	createStringNode: function(str, lineNode) {
+		var start = 0;
+		var result;
+		while (true) {
+			var tStr = str.substr(start);
+			result = searchQuote(tStr);
+			if (result.char !== "") {
+				// create variable node
+				var tValNode = document.createElement("span");
+				tValNode.className = "jstextarea-variable";
+				tValNode.textContent = tStr.substring(0, result.start);
+				lineNode.appenChild(tValNode);
+				// create string
+				var tStrNode = document.createElement("span");
+				tStrNode.className = "jstextarea-string";
+				if (result.end !== -1) {
+					tStrNode.textContent = tStr.substring(result.start, result.end);
+				} else {
+					tStrNode.textContent = tStr.substr(result.start);
+				}
+				lineNode.appendChild(tStrNode);
+				start = start + result.end;
+			} else {
+				break;
+			}
+		}
+		
+		return result.end;
+		
+		function searchQuote(str1) {
+			var qa = str1.indexOf("\"");
+			var qb = str1.indexOf("\'");
+			var quoteChar = "";
+			if (qa != -1 && qb != -1) {
+				 if (qa < qb) {
+					 quoteChar = "\"";
+					 return {char: quoteChar, start: qa, end: str1.indexOf(quoteChar, qa+1)};
+				 } else {
+					 quoteChar = "\'";
+					 return {char: quoteChar, start: qb, end: str1.indexOf(quoteChar, qb+1)};
+				 }
+				
+			} else return {char: quoteChar, start: qa, end: qb};
+		}	
+	},
+	
+	createKeywordNode: function(str) {
+		var tKNode = document.createElement("span");
+		tKNode.textContent = str;
+		// keyword
+		if (KEY_WORDS.indexOf(str) !== -1) {
+			tKNode.className = "jstextarea-keyword";
+			return tKNode;
+		} else {
+		
+			//
+			tKNode.className = "jstextarea-variable";
+			return tKNode;
+		}
 	},
 
 	createTextNode: function (str) {
@@ -320,10 +428,18 @@ jsTextarea.prototype = {
 		var hlNode = document.createElement("span");
 		hlNode.style.zIndex = "3";
 		hlNode.style.position = "relative";
-	//	hlNode.style.paddingRight = "3px";
+		//	hlNode.style.paddingRight = "3px";
 		hlNode.style.color = "red";
 		hlNode.appendChild(this.createTextNode(str));
 		return hlNode;
+	},
+
+	createNewLineNumber: function (index) {
+		var lnNode = document.createElement("div");
+		lnNode.className = "jstextarea-linenumber";
+		lnNode.style.left = -(PADDING.iLeft - 10) + "px";
+		lnNode.textContent = index + 1;
+		return lnNode;
 	},
 
 	splitLines: function (str) {

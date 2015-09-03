@@ -1,0 +1,87 @@
+.jstextarea-background {
+    position: absolute;
+	background: #0a001f;
+	color: #f8f8f8;
+	margin: 0;
+	width: 90%;
+	height: 500px;
+	z-index: 1;
+}	
+.jstextarea-gutter {
+    position: absolute;
+    width: 20px;
+    height: 500px;
+    z-index: 1;
+    background-color: #262626;
+    border-right: 1px solid #505050;
+    padding-right: 0.8em;
+}
+
+.jstextarea-textarea {
+    z-index: 2;
+    width: 100%;
+    min-height: 200px;
+    line-height: 20px;
+    font-family: monospace;
+    position: absolute;
+}
+
+.jstextarea-linenode {
+    margin: 0;
+    z-index: 3;
+    position: relative;
+    white-space: pre;
+}
+
+
+.jstextarea-linenumber {
+    position: absolute;
+    z-index: 3;
+    color: #d0d0d0;
+    width: 20px;
+    text-align: right;
+}
+
+.jstextarea-cursor {
+    position: absolute;
+    z-index: 4;
+    border: 1px solid #f8f8f8;
+    margin: 0;
+    height: 17px;
+}
+
+.jstextarea-focusline {
+    margin: -1px 0 0 -5px;
+    z-index: 2;
+    position: absolute;
+    width: 95%;
+    height: 20px;
+    background: #3C3636 !important;
+}
+
+.jstextarea-keyword { color: #FBDE2D;}
+.jstextarea-variable { color: #FF6400;}
+.jstextarea-string { color: #61CE3C;}
+.jstextarea-definition { color: #8DA6CE;}
+
+div.code {
+    font-size: 16px;
+}
+
+pre {
+    -webkit-border-radius: 0;
+    border-radius: 0;
+    border-width: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    margin: 0;
+    white-space: pre;
+    word-wrap: normal;
+    line-height: inherit;
+    color: inherit;
+    z-index: 2;
+    position: relative;
+    overflow: visible;
+    -webkit-tap-highlight-color: transparent;
+}
