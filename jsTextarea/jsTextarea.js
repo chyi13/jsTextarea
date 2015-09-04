@@ -344,68 +344,141 @@ jsTextarea.prototype = {
 			lineNode.appendChild(document.createTextNode("\n"));
 			return lineNode;
 		}
-
-		var splits = str.split(/(\s)/);
-		for (var i = 0; i<splits.length; i++) {
-			if (splits[i] !== "") {
-				var tSubstr = splits[i];
-				// quotation marks " and '
-				
-		//		var start = this.createStringNode(tSubstr, lineNode);
-				
-				lineNode.appendChild(this.createKeywordNode(tSubstr));
-			}
-		}
+		
+		this.createQuoteString({char: "", end: true}, str, lineNode);
+		// not empty
+// 		var splits = str.split(/(\s)/);
+// 		var quoteState = {char: "", end: true};
+// 		for (var i = 0; i<splits.length; i++) {
+// 			if (splits[i] !== "") {
+// 				var tSubstr = splits[i];
+// 				// quotation marks " and '
+// 				if (splits[i] === " ") {
+// 					// add space? may have some problems
+// 					lineNode.appendChild(this.createTextNode(' '));
+// 				} else {
+// 					// check if the line has quote
+// 					var tStringNode = document.createElement("span");
+// 					quoteState = this.createQuoteString(quoteState, tSubstr, tStringNode);
+// 			//		console.log(quoteState);
+// 					lineNode.appendChild(tStringNode);
+					
+// //					lineNode.appendChild(this.createKeywordNode(tSubstr));	
+// 				}
+// 			}
+// 		}
 		return lineNode;
 	},
-		
-	createStringNode: function(str, lineNode) {
-		var start = 0;
-		var result;
-		while (true) {
-			var tStr = str.substr(start);
-			result = searchQuote(tStr);
-			if (result.char !== "") {
-				// create variable node
-				var tValNode = document.createElement("span");
-				tValNode.className = "jstextarea-variable";
-				tValNode.textContent = tStr.substring(0, result.start);
-				lineNode.appenChild(tValNode);
-				// create string
-				var tStrNode = document.createElement("span");
-				tStrNode.className = "jstextarea-string";
-				if (result.end !== -1) {
-					tStrNode.textContent = tStr.substring(result.start, result.end);
-				} else {
-					tStrNode.textContent = tStr.substr(result.start);
+	
+	createQuoteString: function(state, str, parent) {
+		var qState = state;
+		var sNode;	
+		// find new quotes
+		if (qState.end === true) {
+			var qSingleIndex = str.indexOf("'");
+			var qDoubleIndex = str.indexOf('"');
+			if (qSingleIndex !== -1 && qDoubleIndex !== -1) {
+				if (qSingleIndex < qDoubleIndex) { // single '
+					sNode = this.createKeywordNode(str.substring(0, qSingleIndex + 1));
+					parent.appendChild(sNode);
+					qState = this.createQuoteString({ char: "'", end: false }, str.substr(qSingleIndex + 1), parent);
+				} else {	// double "
+					sNode = this.createKeywordNode(str.substring(0, qDoubleIndex + 1));
+					parent.appendChild(sNode);
+					qState = this.createQuoteString({ char: '"', end: false }, str.substr(qDoubleIndex + 1), parent);
 				}
-				lineNode.appendChild(tStrNode);
-				start = start + result.end;
+			} else if (qSingleIndex !== -1) {
+				sNode = this.createKeywordNode(str.substring(0, qSingleIndex + 1));
+				parent.appendChild(sNode);
+				qState = this.createQuoteString({ char: "'", end: false }, str.substr(qSingleIndex + 1), parent);
+			} else if (qDoubleIndex !== -1) {
+				sNode = this.createKeywordNode(str.substring(0, qDoubleIndex + 1));
+				parent.appendChild(sNode);
+				qState = this.createQuoteString({ char: '"', end: false }, str.substr(qDoubleIndex + 1), parent);
+			} else { // no quotes
+				sNode = this.createKeywordNode(str);
+				parent.appendChild(sNode);
+			}
+		} else {
+			var qIndex = str.indexOf(qState.char);
+			if (qIndex !== -1) {
+				sNode = this.createStringNode(str.substring(0, qIndex));
+				parent.appendChild(sNode);
+				parent.appendChild(this.createKeywordNode(qState.char));
+				this.createQuoteString({ char: "", end: true }, str.substr(qIndex + 1), parent);
 			} else {
-				break;
+				sNode = this.createStringNode(str);
+				parent.appendChild(sNode);
 			}
 		}
 		
-		return result.end;
-		
-		function searchQuote(str1) {
-			var qa = str1.indexOf("\"");
-			var qb = str1.indexOf("\'");
-			var quoteChar = "";
-			if (qa != -1 && qb != -1) {
-				 if (qa < qb) {
-					 quoteChar = "\"";
-					 return {char: quoteChar, start: qa, end: str1.indexOf(quoteChar, qa+1)};
-				 } else {
-					 quoteChar = "\'";
-					 return {char: quoteChar, start: qb, end: str1.indexOf(quoteChar, qb+1)};
-				 }
-				
-			} else return {char: quoteChar, start: qa, end: qb};
-		}	
+		return qState;
 	},
 	
-	createKeywordNode: function(str) {
+	createStringNode: function(str) {
+		var tNode = document.createElement("span");
+		tNode.className = "jstextarea-string";
+		tNode.textContent = str;
+		return tNode;
+	},
+	
+	createQuoteString1: function(qState, str, parent) {
+		if (str === "") return qState;
+		// end
+		var tQState = qState;
+		var qIndex = -1;
+		var tSNode = document.createElement("span");
+		// if previous does not close the string
+		if (qState.end === false) {
+			// find the end tag
+			if ((qIndex = str.indexOf(qState.char)) !== -1) {
+				tSNode.textContent = str.substring(0, qIndex);
+				tSNode.className = "jstextarea-string";
+				parent.appendChild(tSNode);
+				console.log("substr", str.substr(qIndex));
+				tQState = this.createQuoteString1({char: "", end: true}, str.substr(qIndex), parent);
+			} else {
+				console.log(str);
+				tSNode.textContent = str;
+				tSNode.className = "jstextarea-string";
+				parent.appendChild(tSNode);
+			}
+			
+		} else { // if close, find its own
+			var qSingleIndex = str.indexOf("'");
+			var qDoubleIndex = str.indexOf('"');
+			// if find string
+			if (qSingleIndex !== -1 && qDoubleIndex !== -1) {
+				if (qSingleIndex < qDoubleIndex) {
+					tSNode = this.createKeywordNode(str.substring(0, qSingleIndex + 1));
+					parent.appendChild(tSNode);
+					// do the same thing to the rest of the string
+					tQState = this.createQuoteString1({ char: "'", end: false }, str.substr(qSingleIndex + 1), parent);
+				} else {
+					tSNode = this.createKeywordNode(str.substring(0, qDoubleIndex + 1));
+					parent.appendChild(tSNode);
+					tQState = this.createQuoteString1({ char: '"', end: false }, str.substr(qDoubleIndex + 1), parent);
+				}
+			} else if (qSingleIndex !== -1) {
+				tSNode = this.createKeywordNode(str.substring(0, qSingleIndex + 1));
+				parent.appendChild(tSNode);
+				// do the same thing to the rest of the string
+				tQState = this.createQuoteString1({ char: "'", end: false }, str.substr(qSingleIndex + 1), parent);
+			} else if (qDoubleIndex !== -1) {
+				console.log(str.substr(qDoubleIndex + 1));
+				tSNode = this.createKeywordNode(str.substring(0, qDoubleIndex + 1));
+				parent.appendChild(tSNode);
+				tQState = this.createQuoteString1({ char: '"', end: false }, str.substr(qDoubleIndex + 1), parent);
+			} else {
+				tSNode = this.createKeywordNode(str);
+				parent.appendChild(tSNode);
+			}
+
+		}
+		return tQState;
+	},
+
+	createKeywordNode: function (str) {
 		var tKNode = document.createElement("span");
 		tKNode.textContent = str;
 		// keyword
@@ -413,12 +486,12 @@ jsTextarea.prototype = {
 			tKNode.className = "jstextarea-keyword";
 			return tKNode;
 		} else {
-		
 			//
 			tKNode.className = "jstextarea-variable";
 			return tKNode;
 		}
 	},
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	createTextNode: function (str) {
 		return document.createTextNode(str);
