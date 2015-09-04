@@ -59,7 +59,8 @@
     background: #3C3636 !important;
 }
 
-.jstextarea-keyword { color: #FBDE2D;}
+.jstextarea-keyword { color: #eee}
+.jstextarea-operator { color: #FBDE2D;}
 .jstextarea-variable { color: #FF6400;}
 .jstextarea-string { color: #61CE3C;}
 .jstextarea-definition { color: #8DA6CE;}

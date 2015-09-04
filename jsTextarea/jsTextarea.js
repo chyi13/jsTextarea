@@ -104,10 +104,10 @@ var KEY_WORDS = [
 	"var", "while", "with", "yield"
 ];
 
-var OPERATIONS = /[+\-*&%=<>!?|~^]/;
-
+var OPERATIONS = ["+", "\\", "-", "*", "&", "%", "=", "<", ">", "!", "?", "|", "~", "^", "'", '"', ";", ",", ":", "{", "}"];
+var QUOTES = /[\"\']/;
 var FUNCTIONS = [
-	"log"	
+	"log"
 ];
 
 var PADDING = { top: "10px", iTop: 10, left: "40px", iLeft: 40 };
@@ -191,7 +191,6 @@ jsTextarea.prototype = {
 	},
 
 	slowPoll: function () {
-
 	},
 
 	setSlowPoll: function () {
@@ -229,9 +228,9 @@ jsTextarea.prototype = {
 				// add line number
 				var tempNewLineNumberNode = this.createNewLineNumber(index);
 				ta.appendChild(tempNewLineNumberNode);
-
-				var tempNewLineNode;// = this.createNewLineNode(newlines[index]);
-				tempNewLineNode = this.createNewLineNode1(newlines[index]);
+				
+				// add line content
+				var tempNewLineNode = this.createNewLineNode(newlines[index]);
 				ta.appendChild(tempNewLineNode);
 
 				setLineHeight();
@@ -279,11 +278,11 @@ jsTextarea.prototype = {
 			lineNode.appendChild(beforeCaret);
 			lineNode.appendChild(afterCaret);
 			ta.appendChild(lineNode);
-			
+
 			caretCoordX = afterCaret.offsetLeft + linePaddingLeft;
 			caretCoordY = afterCaret.offsetTop + caretPosY * lineheight + linePaddingTop;
 		}
-		
+
 		function createFocusedLine() {
 			var lineNode = document.createElement("div");
 			lineNode.className = "jstextarea-focusline";
@@ -298,79 +297,13 @@ jsTextarea.prototype = {
 		// if empty
 		if (str === "") {
 			lineNode.appendChild(document.createTextNode("\n"));
-			return lineNode;
+		} else {
+			this.createQuoteString({ char: "", end: true }, str, lineNode);
 		}
-		// highlight keywords
-		var i = 0;
-		var keyword_pos = [];
-		var startPos;
-		for (i = 0; i < KEY_WORDS.length; i++) {
-			while ((startPos = str.indexOf("<" + KEY_WORDS[i] + ">", startPos)) !== -1) {
-				keyword_pos.push({ start: startPos, end: startPos + KEY_WORDS[i].length + 2 });
-				startPos += KEY_WORDS[i].length + 2;
-			}
-		}
-		
-		// sort
-		keyword_pos.sort(function (a, b) {
-			return a.start - b.start;
-		});
-		
-		// add
-		startPos = 0;
-		for (i = 0; i < keyword_pos.length; i++) {
-			var substr = str.substring(startPos, keyword_pos[i].start);
-			lineNode.appendChild(this.createTextNode(substr));
-			substr = str.substring(keyword_pos[i].start, keyword_pos[i].end);
-			lineNode.appendChild(this.createHighlightNode(substr));
-
-			startPos = keyword_pos[i].end;
-		}
-
-		if (startPos !== str.length) {
-			lineNode.appendChild(this.createTextNode(str.substr(startPos)));
-		}
-
 		return lineNode;
 	},
-	
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	createNewLineNode1: function (str) {
-		var lineNode = document.createElement("pre");
-		lineNode.className = "jstextarea-linenode";
-		
-		// if empty
-		if (str === "") {
-			lineNode.appendChild(document.createTextNode("\n"));
-			return lineNode;
-		}
-		
-		this.createQuoteString({char: "", end: true}, str, lineNode);
-		// not empty
-// 		var splits = str.split(/(\s)/);
-// 		var quoteState = {char: "", end: true};
-// 		for (var i = 0; i<splits.length; i++) {
-// 			if (splits[i] !== "") {
-// 				var tSubstr = splits[i];
-// 				// quotation marks " and '
-// 				if (splits[i] === " ") {
-// 					// add space? may have some problems
-// 					lineNode.appendChild(this.createTextNode(' '));
-// 				} else {
-// 					// check if the line has quote
-// 					var tStringNode = document.createElement("span");
-// 					quoteState = this.createQuoteString(quoteState, tSubstr, tStringNode);
-// 			//		console.log(quoteState);
-// 					lineNode.appendChild(tStringNode);
-					
-// //					lineNode.appendChild(this.createKeywordNode(tSubstr));	
-// 				}
-// 			}
-// 		}
-		return lineNode;
-	},
-	
-	createQuoteString: function(state, str, parent) {
+
+	createQuoteString: function (state, str, parent) {
 		var qState = state;
 		var sNode;	
 		// find new quotes
@@ -411,87 +344,85 @@ jsTextarea.prototype = {
 				parent.appendChild(sNode);
 			}
 		}
-		
+
 		return qState;
 	},
-	
-	createStringNode: function(str) {
+
+	createStringNode: function (str) {
 		var tNode = document.createElement("span");
 		tNode.className = "jstextarea-string";
 		tNode.textContent = str;
 		return tNode;
 	},
-	
-	createQuoteString1: function(qState, str, parent) {
-		if (str === "") return qState;
-		// end
-		var tQState = qState;
-		var qIndex = -1;
-		var tSNode = document.createElement("span");
-		// if previous does not close the string
-		if (qState.end === false) {
-			// find the end tag
-			if ((qIndex = str.indexOf(qState.char)) !== -1) {
-				tSNode.textContent = str.substring(0, qIndex);
-				tSNode.className = "jstextarea-string";
-				parent.appendChild(tSNode);
-				console.log("substr", str.substr(qIndex));
-				tQState = this.createQuoteString1({char: "", end: true}, str.substr(qIndex), parent);
+	createKeywordNode: function (str) {
+		var splits = str.split(/(\s)/);
+		var tKNode = document.createElement("span");
+		for (var i = 0; i < splits.length; i++) {
+			var pos = findOperatorPos(splits[i]);
+			var tNode;
+			if (pos.length === 0) {
+				tNode = getStyleNode.call(this, splits[i]);
+				tKNode.appendChild(tNode);
 			} else {
-				console.log(str);
-				tSNode.textContent = str;
-				tSNode.className = "jstextarea-string";
-				parent.appendChild(tSNode);
-			}
-			
-		} else { // if close, find its own
-			var qSingleIndex = str.indexOf("'");
-			var qDoubleIndex = str.indexOf('"');
-			// if find string
-			if (qSingleIndex !== -1 && qDoubleIndex !== -1) {
-				if (qSingleIndex < qDoubleIndex) {
-					tSNode = this.createKeywordNode(str.substring(0, qSingleIndex + 1));
-					parent.appendChild(tSNode);
-					// do the same thing to the rest of the string
-					tQState = this.createQuoteString1({ char: "'", end: false }, str.substr(qSingleIndex + 1), parent);
-				} else {
-					tSNode = this.createKeywordNode(str.substring(0, qDoubleIndex + 1));
-					parent.appendChild(tSNode);
-					tQState = this.createQuoteString1({ char: '"', end: false }, str.substr(qDoubleIndex + 1), parent);
+				var start = 0;
+				for (var j = 0; j < pos.length; j++) {
+					tNode = getStyleNode.call(this, splits[i].substring(start, pos[j]));
+					tKNode.appendChild(tNode);
+					tKNode.appendChild(getStyleNode.call(this, splits[i].charAt(pos[j])));
+					start = pos[j] + 1;
 				}
-			} else if (qSingleIndex !== -1) {
-				tSNode = this.createKeywordNode(str.substring(0, qSingleIndex + 1));
-				parent.appendChild(tSNode);
-				// do the same thing to the rest of the string
-				tQState = this.createQuoteString1({ char: "'", end: false }, str.substr(qSingleIndex + 1), parent);
-			} else if (qDoubleIndex !== -1) {
-				console.log(str.substr(qDoubleIndex + 1));
-				tSNode = this.createKeywordNode(str.substring(0, qDoubleIndex + 1));
-				parent.appendChild(tSNode);
-				tQState = this.createQuoteString1({ char: '"', end: false }, str.substr(qDoubleIndex + 1), parent);
-			} else {
-				tSNode = this.createKeywordNode(str);
-				parent.appendChild(tSNode);
 			}
 
 		}
-		return tQState;
+		return tKNode;
+		function findOperatorPos(tStr) {
+			var pos = [];
+			for (var i = 0; i < tStr.length; i++) {
+				if (OPERATIONS.indexOf(tStr[i]) !== -1) {
+					pos.push(i);
+				}
+			}
+			return pos;
+		}
+		function getStyleNode(str) {
+			var tSplitNode;
+			if (str === " ") {
+				tSplitNode = this.createTextNode(" ");
+			} else {
+				tSplitNode = document.createElement("span");
+				if (KEY_WORDS.indexOf(str) !== -1) {	// keyword
+					tSplitNode.className = "jstextarea-keyword";
+				} else if (str === '"' || str === "'") {	// quotes
+					tSplitNode.className = "jstextarea-string";
+				} else if (OPERATIONS.indexOf(str) !== -1) {	// operations
+					tSplitNode.className = "jstextarea-operator";
+				} else {	// variable
+					tSplitNode.className = "jstextarea-variable";
+				}
+				tSplitNode.textContent = str;
+			}
+			return tSplitNode;
+		}
 	},
 
-	createKeywordNode: function (str) {
+	createKeywordNode1: function (str) {
 		var tKNode = document.createElement("span");
 		tKNode.textContent = str;
-		// keyword
-		if (KEY_WORDS.indexOf(str) !== -1) {
+
+		if (KEY_WORDS.indexOf(str) !== -1) { // keyword
 			tKNode.className = "jstextarea-keyword";
 			return tKNode;
+		} else if (str.search(OPERATIONS) !== -1) {	// operation
+			tKNode.className = "jstextarea-operator";
+		} else if (str === '"' || str === "'") {
+			tKNode.className = "jstextarea-string";
 		} else {
 			//
 			tKNode.className = "jstextarea-variable";
-			return tKNode;
 		}
+		return tKNode;
 	},
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	createTextNode: function (str) {
 		return document.createTextNode(str);
