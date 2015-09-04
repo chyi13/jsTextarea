@@ -101,7 +101,7 @@ var KEY_WORDS = [
 	"object", "override", "package", "private", "protected",
 	"return", "sealed", "super", "this", "throw",
 	"trait", "try", "true", "type", "val",
-	"var", "while", "with", "yield"
+	"var", "while", "with", "yield", "function"
 ];
 
 var OPERATIONS = ["+", "\\", "-", "*", "&", "%", "=", "<", ">", "!", "?", "|", "~", "^", "'", '"', ";", ",", ":", "{", "}"];
