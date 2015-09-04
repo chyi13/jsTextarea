@@ -164,6 +164,9 @@ jsTextarea.prototype = {
 		t.focus();
 
 		bg.addEventListener("click", function () { t.focus(); }.bind(this));
+		
+		// first line. add line number 1
+		this.setFirstLineNumber();
 	},
 
 	update: function () {
@@ -204,9 +207,6 @@ jsTextarea.prototype = {
 	},
 
 	applyTextInput: function (inserted) {
-
-		var newlines = this.splitLines(inserted);
-		
 		// delete 
 		this.emptyTextarea();
 
@@ -218,6 +218,8 @@ jsTextarea.prototype = {
 
 		caretPosX = -1, caretPosY = -1;
 		if (inserted !== "") {
+			var newlines = this.splitLines(inserted);
+		
 			for (index = 0; index < newlines.length; index++) {
 				// calculate caret pos
 				if (countChar(index, newlines[index])) {
@@ -236,8 +238,12 @@ jsTextarea.prototype = {
 				setLineHeight();
 			}
 		} else {
+			// for empty line.. some problems
 			caretCoordX = linePaddingLeft;
 			caretCoordY = linePaddingTop;
+			
+			// add line number 1
+			this.setFirstLineNumber();
 		}
 
 		function countChar(tempIndex, tempStr) {
@@ -436,6 +442,10 @@ jsTextarea.prototype = {
 		hlNode.style.color = "red";
 		hlNode.appendChild(this.createTextNode(str));
 		return hlNode;
+	},
+	
+	setFirstLineNumber: function() {
+		ta.appendChild(this.createNewLineNumber(0));
 	},
 
 	createNewLineNumber: function (index) {
